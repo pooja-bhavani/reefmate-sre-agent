@@ -1,0 +1,10 @@
+{
+  "name": "reefmate-live",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:coral": "coral source test usgs_earthquakes && coral source test npm && coral source test npm_stats",
+    "dev": "node server.mjs"
+  }
+}

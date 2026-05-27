@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ReefMate Live Signal Room</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <section class="hero">
+        <div class="brand-stack">
+          <p class="eyebrow">Live Coral Intelligence</p>
+          <h1>ReefMate</h1>
+          <p class="lede">A live signal room that fuses global seismic activity, developer package demand, and agent-tooling movement into one operational board.</p>
+        </div>
+
+        <div class="radar-shell">
+          <div class="radar-topline">
+            <div>
+              <span class="status-dot"></span>
+              <strong>Streaming through Coral SQL</strong>
+            </div>
+            <button id="refresh" class="icon-button" title="Refresh live sources" aria-label="Refresh live sources">R</button>
+          </div>
+          <canvas id="quake-map" width="760" height="420" aria-label="Live earthquake radar"></canvas>
+          <div class="radar-foot">
+            <span id="last-updated">waiting for first pulse</span>
+            <span>USGS + npm registry + npm downloads</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="metrics" aria-label="Live source metrics">
+        <article>
+          <span>Highest live signal</span>
+          <strong id="top-score">...</strong>
+          <p>Magnitude, significance, alert level, and tsunami flag compressed into one triage number.</p>
+        </article>
+        <article>
+          <span>Current quake count</span>
+          <strong id="quake-count">...</strong>
+          <p>Events are pulled from the live USGS source on each refresh.</p>
+        </article>
+        <article>
+          <span>Package demand window</span>
+          <strong id="download-total">...</strong>
+          <p>Watchlisted npm packages are queried as live download telemetry.</p>
+        </article>
+      </section>
+
+      <section class="workspace">
+        <aside class="sidebar" aria-label="Views">
+          <button class="tab active" data-panel="signals">Signal Queue</button>
+          <button class="tab" data-panel="seismic">Seismic Feed</button>
+          <button class="tab" data-panel="packages">Package Pulse</button>
+          <button class="tab" data-panel="agents">Agent Tooling</button>
+          <button class="tab" data-panel="sql">Coral SQL</button>
+        </aside>
+
+        <section class="panel active" id="signals">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">Attention Routing</p>
+              <h2>Ranked live signal queue</h2>
+            </div>
+          </div>
+          <div id="signal-list" class="signal-list"></div>
+        </section>
+
+        <section class="panel" id="seismic">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">Earth Stream</p>
+              <h2>Most significant recent events</h2>
+            </div>
+          </div>
+          <div id="seismic-list" class="card-grid"></div>
+        </section>
+
+        <section class="panel" id="packages">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">Builder Demand</p>
+              <h2>Package pulse</h2>
+            </div>
+          </div>
+          <div id="package-list" class="timeline"></div>
+        </section>
+
+        <section class="panel" id="agents">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">Ecosystem Radar</p>
+              <h2>Agent tooling movement</h2>
+            </div>
+          </div>
+          <div id="agent-list" class="card-grid"></div>
+        </section>
+
+        <section class="panel" id="sql">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">Source Transparency</p>
+              <h2>Queries powering the room</h2>
+            </div>
+          </div>
+          <pre id="sql-view"></pre>
+        </section>
+      </section>
+    </main>
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>
