@@ -135,3 +135,7 @@ Package download telemetry:
 ```bash
 coral sql --format json "SELECT package_name, downloads, start, \"end\" AS end_date FROM npm_stats.downloads WHERE package_name = '@actions/core' LIMIT 1"
 ```
+### Coral UI
+<img width="1465" height="834" alt="image" src="https://github.com/user-attachments/assets/c2cb64f8-fe76-4274-8c24-9233f970b02f" />
+
+<img width="1465" height="837" alt="image" src="https://github.com/user-attachments/assets/297d6b0e-015f-4f83-814d-96befff1b4de" />
