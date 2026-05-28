@@ -4,6 +4,7 @@ ReefMate SRE is a personal DevOps first mate. It reads live GitHub delivery sign
 
 It is intentionally built around live Coral queries. There are no fixture rows or canned repository results: changing the repository input changes the GitHub workflow, PR, issue, npm search, package download, release-gate, and source-health output.
 
+![ReefMate SRE social cover with live DevOps Intelligence and Coral SQL](docs/images/reefmate-social-cover.png)
 
 ### Product Cover
 
