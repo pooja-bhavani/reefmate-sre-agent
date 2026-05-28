@@ -1,8 +1,10 @@
 const state = { dashboard: null };
 const fmt = new Intl.DateTimeFormat("en-IN", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 const numberFmt = new Intl.NumberFormat("en-IN");
-const canvas = document.getElementById("quake-map");
-const ctx = canvas.getContext("2d");
+const compactFmt = new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 });
+const repoInput = document.getElementById("repo-input");
+const savedRepo = localStorage.getItem("reefmate_repo");
+if (savedRepo) repoInput.value = savedRepo;
 
 document.querySelectorAll(".tab").forEach((tab) => {
   tab.addEventListener("click", () => {
@@ -14,6 +16,33 @@ document.querySelectorAll(".tab").forEach((tab) => {
 });
 
 document.getElementById("refresh").addEventListener("click", () => load());
+document.getElementById("copy-brief").addEventListener("click", async () => {
+  if (!state.dashboard) return;
+  const { data } = state.dashboard;
+  const lines = [
+    `Repository: ${data.target.owner}/${data.target.repo}`,
+    `Release gate: ${data.releaseGate.state} (${data.releaseGate.score})`,
+    `Reason: ${data.releaseGate.reason}`,
+    "",
+    "Top attention:",
+    ...data.attention.slice(0, 5).map((item, index) => `${index + 1}. [${item.score}] ${item.title} - ${item.reason}`),
+    "",
+    "Live sources:",
+    ...data.sourceHealth.map((item) => `${item.source}: ${item.detail}`),
+  ];
+  await navigator.clipboard.writeText(lines.join("\n"));
+  document.getElementById("copy-brief").textContent = "Copied";
+  setTimeout(() => {
+    document.getElementById("copy-brief").textContent = "Copy brief";
+  }, 1400);
+});
+document.getElementById("repo-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  const parsed = parseRepoInput(repoInput.value);
+  repoInput.value = `${parsed.owner}/${parsed.repo}`;
+  localStorage.setItem("reefmate_repo", repoInput.value);
+  load();
+});
 setInterval(() => load({ silent: true }), 60_000);
 
 function escapeHtml(value) {
@@ -28,117 +57,90 @@ function chip(text, tone = "") {
   return `<span class="chip ${tone}">${escapeHtml(text)}</span>`;
 }
 
-function signalScore(event) {
-  return Math.round(
-    event.magnitude * 18 +
-    event.significance / 8 +
-    (event.tsunami ? 60 : 0) +
-    (event.alert && event.alert !== "green" ? 40 : 0)
-  );
+function sourceTone(state) {
+  return state === "connected" ? "" : "warn";
 }
 
-function directive(event) {
-  if (event.tsunami) return "Escalate tsunami advisory watch";
-  if (event.magnitude >= 6) return "Watch revisions and aftershocks";
-  if (event.significance >= 500) return "Keep analyst eyes on this";
-  return "Passive watch";
-}
-
-function rankedEvents() {
-  return [...(state.dashboard?.data.earthquakes || [])]
-    .map((event) => ({ ...event, score: signalScore(event) }))
-    .sort((a, b) => b.score - a.score);
-}
-
-function drawRadar(events) {
-  const width = canvas.width;
-  const height = canvas.height;
-  ctx.clearRect(0, 0, width, height);
-  ctx.fillStyle = "#071114";
-  ctx.fillRect(0, 0, width, height);
-
-  ctx.strokeStyle = "rgba(109, 236, 218, 0.08)";
-  ctx.lineWidth = 1;
-  for (let x = 40; x < width; x += 80) {
-    ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, height);
-    ctx.stroke();
+function parseRepoInput(value) {
+  const raw = String(value || "").trim();
+  const withoutGit = raw.replace(/\.git$/i, "");
+  const githubMatch = withoutGit.match(/github\.com[:/]+([^/\s]+)\/([^/\s?#]+)/i);
+  if (githubMatch) {
+    return { owner: githubMatch[1], repo: githubMatch[2] };
   }
-  for (let y = 36; y < height; y += 60) {
-    ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(width, y);
-    ctx.stroke();
+  const simpleMatch = withoutGit.match(/^([^/\s]+)\/([^/\s?#]+)$/);
+  if (simpleMatch) {
+    return { owner: simpleMatch[1], repo: simpleMatch[2] };
   }
-
-  ctx.strokeStyle = "rgba(255, 255, 255, 0.17)";
-  [-60, -30, 0, 30, 60].forEach((lat) => {
-    const y = ((90 - lat) / 180) * height;
-    ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(width, y);
-    ctx.stroke();
-  });
-
-  events.forEach((event) => {
-    const x = ((event.longitude + 180) / 360) * width;
-    const y = ((90 - event.latitude) / 180) * height;
-    const radius = Math.max(7, event.magnitude * 3.2);
-    const hot = event.magnitude >= 6 || event.tsunami;
-    ctx.beginPath();
-    ctx.arc(x, y, radius * 2.2, 0, Math.PI * 2);
-    ctx.fillStyle = hot ? "rgba(255, 91, 81, 0.16)" : "rgba(247, 194, 85, 0.12)";
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(x, y, radius, 0, Math.PI * 2);
-    ctx.fillStyle = hot ? "#ff5b51" : "#f7c255";
-    ctx.fill();
-    ctx.fillStyle = "#f7fffb";
-    ctx.font = "700 11px Inter, sans-serif";
-    ctx.fillText(`M${event.magnitude}`, x + radius + 4, y + 4);
-  });
+  return { owner: "withcoral", repo: "coral" };
 }
 
-function renderSignals(events) {
-  const ranked = events.slice(0, 7);
-  document.getElementById("top-score").textContent = ranked[0]?.score ?? "0";
-  document.getElementById("quake-count").textContent = String(state.dashboard.data.earthquakes.length);
-  document.getElementById("signal-list").innerHTML = ranked.map((event, index) => `
-    <article class="signal-row">
+function actionTone(score) {
+  if (score >= 90) return "danger";
+  if (score >= 70) return "warn";
+  return "";
+}
+
+function renderAttention(items) {
+  document.getElementById("top-score").textContent = items[0]?.score ?? "0";
+  document.getElementById("map-risks").textContent = String(items.length);
+  document.getElementById("attention-list").innerHTML = items.length ? items.map((item, index) => `
+    <article class="signal-row ${actionTone(item.score)}">
       <div class="rank">${String(index + 1).padStart(2, "0")}</div>
-      <div class="score">${event.score}</div>
+      <div class="score">${item.score}</div>
       <div>
-        <h3>${escapeHtml(event.title)}</h3>
-        <p>${escapeHtml(event.place)} · ${escapeHtml(fmt.format(new Date(event.event_time)))}</p>
-        <div class="chips">
-          ${chip(`M ${event.magnitude}`, event.magnitude >= 6 ? "danger" : "")}
-          ${chip(`sig ${event.significance}`)}
-          ${chip(event.alert || "no alert")}
-          ${chip(event.tsunami ? "tsunami flag" : "no tsunami flag", event.tsunami ? "danger" : "")}
-          ${chip(`${event.depth_km} km deep`)}
-        </div>
+        <h3>${escapeHtml(item.title)}</h3>
+        <p>${escapeHtml(item.reason)}</p>
+        <div class="chips">${chip(item.kind, actionTone(item.score))}${chip(item.evidence)}</div>
       </div>
-      <div class="directive">${escapeHtml(directive(event))}</div>
+      <div class="directive">
+        <span>${escapeHtml(item.action)}</span>
+        ${item.url ? `<a href="${escapeHtml(item.url)}" target="_blank" rel="noreferrer">Open evidence</a>` : ""}
+      </div>
     </article>
-  `).join("");
+  `).join("") : `<div class="loading">No attention items returned from the live sources.</div>`;
 }
 
-function renderSeismic(events) {
-  document.getElementById("seismic-list").innerHTML = events.map((event) => `
+function renderCi(items) {
+  const risky = items.filter((run) => run.conclusion && run.conclusion !== "success").length;
+  document.getElementById("map-ci").textContent = items.length ? (risky ? `${risky} risky` : "green") : "none";
+  document.getElementById("ci-list").innerHTML = items.length ? items.map((run) => {
+    const tone = run.conclusion === "success" ? "" : "danger";
+    return `
+      <article class="card">
+        <span class="meta-label">${escapeHtml(run.status)} · ${escapeHtml(run.conclusion || "running")}</span>
+        <h3>${escapeHtml(run.display_title)}</h3>
+        <p>${escapeHtml(run.head_branch || "unknown branch")} · ${escapeHtml(run.actor__login || "unknown")} · ${fmt.format(new Date(run.run_started_at))}</p>
+        <div class="chips">${chip(run.event)}${chip(run.conclusion || run.status, tone)}</div>
+      </article>
+    `;
+  }).join("") : `<div class="loading">No GitHub Actions runs found for this repository.</div>`;
+}
+
+function renderReview(prs, issues, summary) {
+  const issueRows = issues.filter((item) => !String(item.html_url).includes("/pull/"));
+  const workCount = prs.length + issueRows.length;
+  document.getElementById("work-count").textContent = String(workCount);
+  document.getElementById("map-prs").textContent = String(workCount);
+  const rows = [
+    ...prs.map((item) => ({ ...item, type: item.draft ? "Draft PR" : "PR", note: item.requested_reviewer_logins || "no reviewer requested" })),
+    ...issueRows.slice(0, 8).map((item) => ({ ...item, type: "Issue", note: `${item.comments || 0} comments` })),
+  ];
+  document.getElementById("review-list").innerHTML = rows.length ? rows.map((item) => `
     <article class="card">
-      <span class="meta-label">M ${event.magnitude} · significance ${event.significance}</span>
-      <h3>${escapeHtml(event.title)}</h3>
-      <p>${escapeHtml(fmt.format(new Date(event.event_time)))} · ${escapeHtml(event.alert || "no alert")}</p>
-      <div class="chips">${chip(event.tsunami ? "tsunami flag" : "no tsunami flag", event.tsunami ? "danger" : "")}${chip("USGS live")}</div>
+      <span class="meta-label">${escapeHtml(item.type)} · #${item.number}</span>
+      <h3>${escapeHtml(item.title)}</h3>
+      <p>${escapeHtml(item.user__login || "unknown")} · updated ${fmt.format(new Date(item.updated_at))}</p>
+      <div class="chips">${chip(item.note)}${item.draft ? chip("draft", "warn") : ""}</div>
     </article>
-  `).join("");
+  `).join("") : `<div class="loading">No open PRs or issues found for this repository.</div>`;
 }
 
-function renderPackages(items) {
+function renderDependencies(items, packages) {
   const total = items.reduce((sum, item) => sum + Number(item.downloads || 0), 0);
-  document.getElementById("download-total").textContent = numberFmt.format(total);
-  document.getElementById("package-list").innerHTML = items.map((item) => `
+  document.getElementById("download-total").textContent = compactFmt.format(total);
+  document.getElementById("map-deps").textContent = compactFmt.format(total);
+  const downloadRows = items.map((item) => `
     <article class="timeline-item">
       <div>
         <div class="time">${escapeHtml(item.package_name)}</div>
@@ -146,20 +148,48 @@ function renderPackages(items) {
       </div>
       <div>
         <h3>${numberFmt.format(item.downloads)} downloads</h3>
-        <p>Returned by the npm downloads source at request time.</p>
+        <p>Package selected from repository signals and the current npm download window.</p>
       </div>
     </article>
   `).join("");
+  const packageRows = packages.slice(0, 4).map((item) => `
+    <article class="timeline-item">
+      <div>
+        <div class="time">${escapeHtml(item.name)}</div>
+        <p>${numberFmt.format(item.downloads_monthly || 0)} monthly</p>
+      </div>
+      <div>
+        <h3>${escapeHtml(item.version)}</h3>
+        <p>${escapeHtml(item.description)}</p>
+      </div>
+    </article>
+  `).join("");
+  document.getElementById("dependency-list").innerHTML = downloadRows + packageRows;
 }
 
-function renderAgents(items) {
-  document.getElementById("agent-list").innerHTML = items.map((item) => `
-    <article class="card">
-      <span class="meta-label">${numberFmt.format(item.downloads_monthly || 0)} monthly downloads</span>
-      <h3>${escapeHtml(item.name)} <small>${escapeHtml(item.version)}</small></h3>
-      <p>${escapeHtml(item.description)}</p>
-      <div class="chips">${chip(item.license || "no license")}${chip(item.author_username || "unknown author")}${chip(new Date(item.date).getFullYear())}</div>
-    </article>
+function renderGate(gate, health) {
+  document.getElementById("gate-score").textContent = String(gate.score);
+  document.getElementById("gate-copy").textContent = `${gate.state}: ${gate.reason}`;
+  document.getElementById("gate-state").textContent = gate.state;
+  document.getElementById("gate-state").className = gate.state.toLowerCase();
+  document.getElementById("gate-reason").textContent = gate.reason;
+  document.getElementById("gate-checks").innerHTML = gate.checks.map((item) => `
+    <div class="check-row ${item.ok ? "ok" : "warn"}">
+      <span>${item.ok ? "OK" : "CHECK"}</span>
+      <div>
+        <strong>${escapeHtml(item.label)}</strong>
+        <p>${escapeHtml(item.value)}</p>
+      </div>
+    </div>
+  `).join("");
+  document.getElementById("health-list").innerHTML = health.map((item) => `
+    <div class="health-row">
+      ${chip(item.state, sourceTone(item.state))}
+      <div>
+        <strong>${escapeHtml(item.source)}</strong>
+        <p>${escapeHtml(item.detail)}</p>
+      </div>
+    </div>
   `).join("");
 }
 
@@ -171,28 +201,39 @@ function renderSql(queries) {
 
 async function load(options = {}) {
   if (!options.silent) {
-    ["signal-list", "seismic-list", "package-list", "agent-list"].forEach((id) => {
+    ["attention-list", "ci-list", "review-list", "dependency-list"].forEach((id) => {
       document.getElementById(id).innerHTML = `<div class="loading">Running live Coral SQL...</div>`;
     });
+    document.getElementById("gate-state").textContent = "...";
+    document.getElementById("gate-reason").textContent = "Running live Coral SQL.";
+    document.getElementById("gate-checks").innerHTML = "";
+    document.getElementById("health-list").innerHTML = "";
+    document.getElementById("repo-target").textContent = "Analyzing repository";
   }
 
-  const response = await fetch("/api/dashboard");
+  const { owner, repo } = parseRepoInput(repoInput.value);
+  const params = new URLSearchParams({
+    owner,
+    repo,
+  });
+  const response = await fetch(`/api/dashboard?${params.toString()}`);
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.error || "Dashboard failed");
   }
 
   state.dashboard = await response.json();
-  const events = rankedEvents();
-  drawRadar(events);
-  renderSignals(events);
-  renderSeismic(state.dashboard.data.severeEarthquakes);
-  renderPackages(state.dashboard.data.downloads);
-  renderAgents(state.dashboard.data.packages);
-  renderSql(state.dashboard.queries);
+  const { data, queries } = state.dashboard;
+  document.getElementById("repo-target").textContent = `${data.target.owner}/${data.target.repo}`;
+  renderAttention(data.attention);
+  renderCi(data.workflowRuns);
+  renderReview(data.pullRequests, data.issues, data.summary);
+  renderDependencies(data.downloads, data.agentPackages);
+  renderGate(data.releaseGate, data.sourceHealth);
+  renderSql(queries);
   document.getElementById("last-updated").textContent = `last pulse ${fmt.format(new Date(state.dashboard.generatedAt))}`;
 }
 
 load().catch((error) => {
-  document.body.innerHTML = `<main class="app"><section class="panel active"><h1>ReefMate could not start</h1><p>${escapeHtml(error.message)}</p><p>Run <code>npm run test:coral</code>, then restart <code>npm run dev</code>.</p></section></main>`;
+  document.body.innerHTML = `<main class="app"><section class="panel active"><h1>ReefMate SRE could not start</h1><p>${escapeHtml(error.message)}</p><p>Run <code>npm run test:coral</code>, then restart <code>npm run dev</code>.</p></section></main>`;
 });

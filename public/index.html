@@ -3,106 +3,161 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>ReefMate Live Signal Room</title>
+    <title>ReefMate SRE</title>
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
     <main class="app">
       <section class="hero">
         <div class="brand-stack">
-          <p class="eyebrow">Live Coral Intelligence</p>
-          <h1>ReefMate</h1>
-          <p class="lede">A live signal room that fuses global seismic activity, developer package demand, and agent-tooling movement into one operational board.</p>
+          <p class="eyebrow">Personal DevOps First Mate</p>
+          <h1>ReefMate SRE</h1>
+          <p class="lede">A live operations desk that reads GitHub delivery flow and npm dependency movement through Coral SQL, then tells a DevOps engineer what needs attention first.</p>
+          <form class="repo-form" id="repo-form">
+            <label for="repo-input">Repository</label>
+            <div>
+              <input id="repo-input" name="repo" value="withcoral/coral" autocomplete="off" spellcheck="false" />
+              <button type="submit">Analyze</button>
+            </div>
+          </form>
         </div>
 
         <div class="radar-shell">
           <div class="radar-topline">
             <div>
               <span class="status-dot"></span>
-              <strong>Streaming through Coral SQL</strong>
+              <strong id="repo-target">Loading repository</strong>
             </div>
             <button id="refresh" class="icon-button" title="Refresh live sources" aria-label="Refresh live sources">R</button>
           </div>
-          <canvas id="quake-map" width="760" height="420" aria-label="Live earthquake radar"></canvas>
+          <div class="ops-map" aria-label="Operational flow map">
+            <div class="lane">
+              <span>Code</span>
+              <strong id="map-prs">...</strong>
+            </div>
+            <div class="connector"></div>
+            <div class="lane">
+              <span>CI</span>
+              <strong id="map-ci">...</strong>
+            </div>
+            <div class="connector"></div>
+            <div class="lane">
+              <span>Deps</span>
+              <strong id="map-deps">...</strong>
+            </div>
+            <div class="connector"></div>
+            <div class="lane hot">
+              <span>Attention</span>
+              <strong id="map-risks">...</strong>
+            </div>
+          </div>
           <div class="radar-foot">
             <span id="last-updated">waiting for first pulse</span>
-            <span>USGS + npm registry + npm downloads</span>
+            <span>GitHub + npm queried through Coral</span>
           </div>
         </div>
       </section>
 
-      <section class="metrics" aria-label="Live source metrics">
+      <section class="metrics" aria-label="Live DevOps metrics">
         <article>
-          <span>Highest live signal</span>
+          <span>Release gate</span>
+          <strong id="gate-score">...</strong>
+          <p id="gate-copy">Waiting for live repository evidence.</p>
+        </article>
+        <article>
+          <span>Highest risk</span>
           <strong id="top-score">...</strong>
-          <p>Magnitude, significance, alert level, and tsunami flag compressed into one triage number.</p>
+          <p>Computed from workflow state, review gaps, stale work, and dependency pressure.</p>
         </article>
         <article>
-          <span>Current quake count</span>
-          <strong id="quake-count">...</strong>
-          <p>Events are pulled from the live USGS source on each refresh.</p>
+          <span>Open work</span>
+          <strong id="work-count">...</strong>
+          <p>Repository-specific PRs and issues returned by Coral.</p>
         </article>
         <article>
-          <span>Package demand window</span>
+          <span>Watchlist downloads</span>
           <strong id="download-total">...</strong>
-          <p>Watchlisted npm packages are queried as live download telemetry.</p>
+          <p>Dependency demand from npm for packages common in modern stacks.</p>
         </article>
       </section>
 
       <section class="workspace">
         <aside class="sidebar" aria-label="Views">
-          <button class="tab active" data-panel="signals">Signal Queue</button>
-          <button class="tab" data-panel="seismic">Seismic Feed</button>
-          <button class="tab" data-panel="packages">Package Pulse</button>
-          <button class="tab" data-panel="agents">Agent Tooling</button>
+          <button class="tab active" data-panel="attention">Attention Queue</button>
+          <button class="tab" data-panel="ci">CI/CD</button>
+          <button class="tab" data-panel="review">Review Flow</button>
+          <button class="tab" data-panel="dependencies">Dependency Risk</button>
+          <button class="tab" data-panel="gate">Release Gate</button>
           <button class="tab" data-panel="sql">Coral SQL</button>
         </aside>
 
-        <section class="panel active" id="signals">
+        <section class="panel active" id="attention">
           <div class="panel-head">
             <div>
-              <p class="eyebrow">Attention Routing</p>
-              <h2>Ranked live signal queue</h2>
+              <p class="eyebrow">What needs you now?</p>
+              <h2>DevOps attention queue</h2>
             </div>
           </div>
-          <div id="signal-list" class="signal-list"></div>
+          <div id="attention-list" class="signal-list"></div>
         </section>
 
-        <section class="panel" id="seismic">
+        <section class="panel" id="ci">
           <div class="panel-head">
             <div>
-              <p class="eyebrow">Earth Stream</p>
-              <h2>Most significant recent events</h2>
+              <p class="eyebrow">Pipeline State</p>
+              <h2>Recent workflow runs</h2>
             </div>
           </div>
-          <div id="seismic-list" class="card-grid"></div>
+          <div id="ci-list" class="card-grid"></div>
         </section>
 
-        <section class="panel" id="packages">
+        <section class="panel" id="review">
           <div class="panel-head">
             <div>
-              <p class="eyebrow">Builder Demand</p>
-              <h2>Package pulse</h2>
+              <p class="eyebrow">Delivery Flow</p>
+              <h2>Pull requests and issues</h2>
             </div>
           </div>
-          <div id="package-list" class="timeline"></div>
+          <div id="review-list" class="card-grid"></div>
         </section>
 
-        <section class="panel" id="agents">
+        <section class="panel" id="dependencies">
           <div class="panel-head">
             <div>
-              <p class="eyebrow">Ecosystem Radar</p>
-              <h2>Agent tooling movement</h2>
+              <p class="eyebrow">Supply Surface</p>
+              <h2>Dependency pressure</h2>
             </div>
           </div>
-          <div id="agent-list" class="card-grid"></div>
+          <div id="dependency-list" class="timeline"></div>
+        </section>
+
+        <section class="panel" id="gate">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">Ship Decision</p>
+              <h2>Release gate and source health</h2>
+            </div>
+            <button id="copy-brief" class="ghost-button" type="button">Copy brief</button>
+          </div>
+          <div class="gate-layout">
+            <article class="gate-card">
+              <span class="meta-label">Current decision</span>
+              <strong id="gate-state">...</strong>
+              <p id="gate-reason">Waiting for live Coral SQL.</p>
+              <div id="gate-checks" class="check-list"></div>
+            </article>
+            <article class="gate-card">
+              <span class="meta-label">Source health</span>
+              <div id="health-list" class="health-list"></div>
+            </article>
+          </div>
         </section>
 
         <section class="panel" id="sql">
           <div class="panel-head">
             <div>
-              <p class="eyebrow">Source Transparency</p>
-              <h2>Queries powering the room</h2>
+              <p class="eyebrow">Evidence Layer</p>
+              <h2>Queries powering the desk</h2>
             </div>
           </div>
           <pre id="sql-view"></pre>

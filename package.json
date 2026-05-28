@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test:coral": "coral source test usgs_earthquakes && coral source test npm && coral source test npm_stats",
+    "test:coral": "coral source test github && coral source test npm && coral source test npm_stats",
     "dev": "node server.mjs"
   }
 }
