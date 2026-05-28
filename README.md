@@ -4,6 +4,20 @@ ReefMate SRE is a personal DevOps first mate. It reads live GitHub delivery sign
 
 It is intentionally built around live Coral queries. There are no fixture rows or canned repository results: changing the repository input changes the GitHub workflow, PR, issue, npm search, package download, release-gate, and source-health output.
 
+## Screenshots
+
+### Attention Queue
+
+![ReefMate SRE attention queue showing repository-specific DevOps risks](docs/images/reefmate-attention-queue.jpg)
+
+### Release Gate
+
+![ReefMate SRE release gate showing source health and ship decision checks](docs/images/reefmate-release-gate.jpg)
+
+### Coral SQL Evidence
+
+![ReefMate SRE Coral SQL view showing the live queries behind the dashboard](docs/images/reefmate-coral-sql.jpg)
+
 ## What It Does
 
 - Finds risky GitHub workflow runs.
