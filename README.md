@@ -22,6 +22,11 @@ ReefMate SRE is a personal DevOps first mate. It reads live GitHub delivery sign
 
 ## Run Locally
 
+Install npm
+```
+npm install
+```
+
 Make sure Coral can access the required sources:
 
 ```bash
