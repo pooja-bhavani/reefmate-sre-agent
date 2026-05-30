@@ -144,4 +144,6 @@ coral sql --format json "SELECT package_name, downloads, start, \"end\" AS end_d
 
 <img width="1465" height="837" alt="image" src="https://github.com/user-attachments/assets/297d6b0e-015f-4f83-814d-96befff1b4de" />
 
+<img width="2934" height="1771" alt="image" src="https://github.com/user-attachments/assets/f22adb4d-8b05-470d-bb15-0460d550d51f" />
+
 <img width="1453" height="804" alt="Screenshot 2026-05-28 at 6 13 31 PM" src="https://github.com/user-attachments/assets/a651dc66-fd69-4847-9835-306ed0e7cbc5" />
